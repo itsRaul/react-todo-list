@@ -10,7 +10,9 @@ class TodoList extends Component{
   constructor(props){
       super(props);
       this.state = {
-        todoList:[]
+        todoList:[],
+        view:'all',
+        leftItem:0
       }
       this.todoInput = createRef()
   }
@@ -91,13 +93,65 @@ class TodoList extends Component{
 
   }
 
+  //输入框编辑数据的更新，id判断是否是当前点击，更新传入的内容
+  alterTodoContent = (id,content)=>{
+    let {todoList} = this.state;
+
+    todoList = todoList.map(elt=>{
+      if(elt.id == id){
+        elt.content = content
+      }
+      return elt;
+    })
+
+    this.setState({
+      todoList
+    })
+  }
+
+  //删除选中的
+  clearAllCompleted = ()=>{
+    let {todoList} = this.state;
+
+    //filter过滤数据，当前id不想等则过滤，返回新的数据必须在setState进行更新
+    todoList = todoList.filter( (elt)=>{
+      return !elt.hasComleted
+    })
+    this.setState({
+      todoList
+    })
+  }
+
+  //改变footer的className
+  changeClassName = (view)=>{
+    this.setState({
+      view
+    })
+  }
+
   render(){
 
-    let {todoList} = this.state;
+    let {todoList,view,leftItem} = this.state;
+
+    let showTodoData = todoList.filter(elt =>{
+
+      if(!elt.hasComleted) leftItem++
+      switch(view){
+        case 'active':
+          return !elt.hasComleted;
+        case 'comleted':
+          return elt.hasComleted;
+        case 'all':
+          default:
+            return 'all'
+
+        
+      }
+    })
 
     //map遍历返回一个新的<Todo/>,子组件props接受content
     //{...{}} 这不是es6的扩展符，父组件传递的props属性
-    let todos = todoList.map(elt => {
+    let todos = showTodoData.map(elt => {
       return(
         <Todo 
           key={elt.id}
@@ -106,12 +160,14 @@ class TodoList extends Component{
             content:elt.content,
             deleteTodo:this.deleteItem,
             hasComleted:elt.hasComleted,
-            toggleTodo:this.toggleTodo
+            toggleTodo:this.toggleTodo,
+            alterTodoContent:this.alterTodoContent
           }}
         />
       )
     })
     let activeTodo = todoList.find(elt=>elt.hasComleted === false)
+    let completedTodo = todoList.find(elt=>elt.hasComleted === true)
     return (
       <div>
         <header className="header">
@@ -125,23 +181,34 @@ class TodoList extends Component{
             onKeyDown = {this.addTodo}
           />
         </header>
-
-        <section className="main">
-          {/* 全选按钮 */}
-          <input
-            type="checkbox"
-            className="toggle-all"
-            checked={!activeTodo && todoList.length>0}
-            onChange = {this.todoAll}
+        {todoList.length>0 && (
+          <React.Fragment>
+            <section className="main">
+            {/* 全选按钮 */}
+            <input
+              type="checkbox"
+              className="toggle-all"
+              checked={!activeTodo && todoList.length>0}
+              onChange = {this.todoAll}
+            />
+            <ul className="todo-list">
+              {todos}
+            </ul>
+          </section>
+  
+          <Footer
+            {...{
+              clearAllCompleted:this.clearAllCompleted,
+              showClearButton:completedTodo && todoList.length>0 ,//判断有1过选中叫显示clear
+              view:view,
+              changeClassName:this.changeClassName,
+              leftItem:leftItem
+            }}
           />
-          <ul className="todo-list">
-            {todos}
-          </ul>
-        </section>
-
-        <Footer/>
-        
-
+         </React.Fragment>
+ 
+        )}
+       
       </div>
     )
   }
